@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TetrisAvalonia.MainWindow"
+        Width="700" Height="700"
+        Title="Tetris - Avalonia">
+	<Grid ColumnDefinitions="Auto, 300" RowDefinitions="*">
+		<!-- Playfield -->
+		<Border Background="#111" Padding="10">
+			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+				<Canvas Name="PlayfieldCanvas" Width="300" Height="600" />
+			</ScrollViewer>
+		</Border>
+
+		<!-- Info panel -->
+		<StackPanel Grid.Column="1" Margin="12">
+			<TextBlock Name="TxtState" FontSize="18" Margin="0,0,0,8" />
+
+			<StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+				<Button Name="BtnStart" Content="Start" Width="80" Click="BtnStart_Click"/>
+				<Button Name="BtnPause" Content="Pause" Width="80" Margin="8,0,0,0" Click="BtnPause_Click"/>
+			</StackPanel>
+			
+			<TextBlock Text="Controls:" Margin="0,20,0,4"/>
+			<TextBlock Text="← → move, ↑ rotate, ↓ soft drop, Space hard drop" TextWrapping="Wrap"/>
+		</StackPanel>
+	</Grid>
+</Window>
