@@ -276,6 +276,7 @@ namespace TetrisAvalonia
             catch { }
         }
 
+        // Модифицируем метод AddHighScore чтобы принимать имя
         public void AddHighScore(string name, int score)
         {
             HighScores.Add(new HighScore { Name = name, Score = score });
@@ -283,10 +284,6 @@ namespace TetrisAvalonia
             SaveHighScores();
         }
 
-        // НОВЫЙ метод для получения количества линий
-        public int GetLinesCleared()
-        {
-            return LinesCleared;
-        }
+
     }
 }

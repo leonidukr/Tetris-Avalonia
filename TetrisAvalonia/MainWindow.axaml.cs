@@ -5,8 +5,6 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using System;
 using System.Linq;
-using System.Collections.Generic;
-using Avalonia.Media.TextFormatting;
 
 namespace TetrisAvalonia
 {
@@ -16,6 +14,7 @@ namespace TetrisAvalonia
         private readonly DispatcherTimer _timer;
         private bool _running = false;
         private int _totalLinesCleared = 0;
+        private string _playerName = "Player";
 
         public MainWindow()
         {
@@ -35,6 +34,27 @@ namespace TetrisAvalonia
 
             // Загружаем лучший рекорд для меню
             UpdateTopScore();
+
+            // Изначально блокируем кнопку BACK, чтобы она не перехватывала фокус
+            BtnBackToMenu.IsEnabled = false;
+            BtnBackToMenu.Focusable = false; // Важно: не даем получить фокус
+        }
+
+        protected override void OnGotFocus(GotFocusEventArgs e)
+        {
+            base.OnGotFocus(e);
+            // При получении фокуса окном - сразу даем фокус игровому полю
+            if (GameScreen.IsVisible)
+            {
+                // Создаем невидимый элемент для фокуса
+                var focusHelper = new Control
+                {
+                    Focusable = true,
+                    IsVisible = false
+                };
+                // Можно сразу установить фокус на окно
+                this.Focus();
+            }
         }
 
         private void Timer_Tick(object? sender, EventArgs e)
@@ -60,6 +80,9 @@ namespace TetrisAvalonia
 
             // Количество линий
             TxtLines.Text = _totalLinesCleared.ToString();
+
+            // Имя игрока
+            TxtPlayerName.Text = _playerName;
 
             // Следующая фигура
             RenderNext();
@@ -126,7 +149,34 @@ namespace TetrisAvalonia
             var block = _game.NextPiece;
             if (block == null) return;
 
-            int cell = 25;
+            // Меньший размер для фигуры в окне NEXT
+            int cell = 18; // Уменьшил размер с 25 до 18
+
+            // Находим границы фигуры, чтобы центрировать ее
+            int minX = 4, maxX = 0, minY = 4, maxY = 0;
+            bool hasBlocks = false;
+
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                {
+                    if (block[y, x] != 0)
+                    {
+                        hasBlocks = true;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+
+            if (!hasBlocks) return;
+
+            // Центрируем фигуру
+            int width = (maxX - minX + 1) * cell;
+            int height = (maxY - minY + 1) * cell;
+            int offsetX = (80 - width) / 2 - minX * cell;
+            int offsetY = (80 - height) / 2 - minY * cell;
+
             for (int y = 0; y < 4; y++)
                 for (int x = 0; x < 4; x++)
                 {
@@ -141,8 +191,8 @@ namespace TetrisAvalonia
                             Stroke = Brushes.Black,
                             StrokeThickness = 1
                         };
-                        Canvas.SetLeft(rect, x * cell + 10);
-                        Canvas.SetTop(rect, y * cell + 10);
+                        Canvas.SetLeft(rect, x * cell + offsetX);
+                        Canvas.SetTop(rect, y * cell + offsetY);
                         NextCanvas.Children.Add(rect);
                     }
                 }
@@ -219,37 +269,58 @@ namespace TetrisAvalonia
         {
             if (!_running) return;
 
+            // Обработка игровых клавиш
+            bool keyHandled = false;
+
             switch (e.Key)
             {
                 case Key.Left:
                     _game.TryMove(-1, 0);
                     RenderAll();
+                    keyHandled = true;
                     break;
                 case Key.Right:
                     _game.TryMove(1, 0);
                     RenderAll();
+                    keyHandled = true;
                     break;
                 case Key.Up:
                     _game.TryRotate();
                     RenderAll();
+                    keyHandled = true;
                     break;
                 case Key.Down:
                     _game.TryMove(0, 1);
                     RenderAll();
+                    keyHandled = true;
                     break;
                 case Key.Space:
                     _game.HardDrop();
                     RenderAll();
+                    keyHandled = true;
                     break;
             }
 
-            UpdateGameUI();
+            if (keyHandled)
+            {
+                e.Handled = true; // Предотвращаем дальнейшую обработку
+                UpdateGameUI();
+                // Возвращаем фокус окну
+                this.Focus();
+            }
         }
 
         // === ОБРАБОТЧИКИ МЕНЮ ===
 
         private void BtnStartGame_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
+            // Сохраняем имя игрока
+            _playerName = string.IsNullOrWhiteSpace(PlayerNameTextBox.Text) ?
+                "Player" : PlayerNameTextBox.Text.Trim();
+
+            if (_playerName.Length > 10)
+                _playerName = _playerName.Substring(0, 10);
+
             // Переключаемся на экран игры
             MenuScreen.IsVisible = false;
             GameScreen.IsVisible = true;
@@ -386,14 +457,22 @@ namespace TetrisAvalonia
             _running = true;
             _timer.Start();
 
+            // Разблокируем BACK кнопку только после старта
+            BtnBackToMenu.IsEnabled = true;
+            BtnBackToMenu.Focusable = false; // Все равно не даем фокус
+
             TxtGameState.Text = "PLAYING";
             TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(85, 255, 85));
 
             RenderAll();
             UpdateGameUI();
 
-            // Фокус на окно для клавиатуры
+            // Устанавливаем фокус на окно
             this.Focus();
+
+            // Очищаем фокус с кнопок
+            BtnStart.IsTabStop = false;
+            BtnPause.IsTabStop = false;
         }
 
         private void PauseGame()
@@ -416,6 +495,8 @@ namespace TetrisAvalonia
             TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(85, 255, 85));
 
             UpdateGameUI();
+
+            // Возвращаем фокус окну
             this.Focus();
         }
     }
