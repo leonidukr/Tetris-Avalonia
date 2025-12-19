@@ -24,35 +24,35 @@ namespace TetrisAvalonia
 #endif
             _game = new TetrisGame();
 
-            // Таймер для игрового цикла
+            // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(30);
             _timer.Tick += Timer_Tick;
 
-            // Обработка клавиатуры
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             this.KeyDown += MainWindow_KeyDown;
 
-            // Загружаем лучший рекорд для меню
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             UpdateTopScore();
 
-            // Изначально блокируем кнопку BACK, чтобы она не перехватывала фокус
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ BACK, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
             BtnBackToMenu.IsEnabled = false;
-            BtnBackToMenu.Focusable = false; // Важно: не даем получить фокус
+            BtnBackToMenu.Focusable = false; // пїЅпїЅпїЅпїЅпїЅ: пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         }
 
         protected override void OnGotFocus(GotFocusEventArgs e)
         {
             base.OnGotFocus(e);
-            // При получении фокуса окном - сразу даем фокус игровому полю
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             if (GameScreen.IsVisible)
             {
-                // Создаем невидимый элемент для фокуса
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                 var focusHelper = new Control
                 {
                     Focusable = true,
                     IsVisible = false
                 };
-                // Можно сразу установить фокус на окно
+                // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
                 this.Focus();
             }
         }
@@ -71,23 +71,23 @@ namespace TetrisAvalonia
         {
             TxtScore.Text = _game.Score.ToString("N0");
 
-            // Обновляем состояние игры
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             TxtGameState.Text = _running ? "PLAYING" : "PAUSED";
 
-            // Уровень (основан на количестве очищенных линий)
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ)
             int level = (_totalLinesCleared / 10) + 1;
             TxtLevel.Text = level.ToString();
 
-            // Количество линий
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
             TxtLines.Text = _totalLinesCleared.ToString();
 
-            // Имя игрока
+            // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             TxtPlayerName.Text = _playerName;
 
-            // Следующая фигура
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             RenderNext();
 
-            // Обновляем таблицу рекордов
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             UpdateHighScoresList();
         }
 
@@ -149,10 +149,10 @@ namespace TetrisAvalonia
             var block = _game.NextPiece;
             if (block == null) return;
 
-            // Меньший размер для фигуры в окне NEXT
-            int cell = 18; // Уменьшил размер с 25 до 18
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ NEXT
+            int cell = 18; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ 25 пїЅпїЅ 18
 
-            // Находим границы фигуры, чтобы центрировать ее
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ
             int minX = 4, maxX = 0, minY = 4, maxY = 0;
             bool hasBlocks = false;
 
@@ -171,7 +171,7 @@ namespace TetrisAvalonia
 
             if (!hasBlocks) return;
 
-            // Центрируем фигуру
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             int width = (maxX - minX + 1) * cell;
             int height = (maxY - minY + 1) * cell;
             int offsetX = (80 - width) / 2 - minX * cell;
@@ -204,11 +204,11 @@ namespace TetrisAvalonia
             int cell = TetrisGame.CellSize;
             var grid = _game.Grid;
 
-            // Сетка игрового поля
+            // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             for (int y = 0; y < TetrisGame.Height; y++)
                 for (int x = 0; x < TetrisGame.Width; x++)
                 {
-                    // Ячейка сетки
+                    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                     var border = new Avalonia.Controls.Shapes.Rectangle
                     {
                         Width = cell,
@@ -221,7 +221,7 @@ namespace TetrisAvalonia
                     Canvas.SetTop(border, y * cell);
                     PlayfieldCanvas.Children.Add(border);
 
-                    // Блок (если есть)
+                    // пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ)
                     var v = grid[y, x];
                     if (v != 0)
                     {
@@ -239,7 +239,7 @@ namespace TetrisAvalonia
                     }
                 }
 
-            // Текущая фигура
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             var cur = _game.CurrentPiece;
             if (cur != null)
             {
@@ -269,7 +269,7 @@ namespace TetrisAvalonia
         {
             if (!_running) return;
 
-            // Обработка игровых клавиш
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             bool keyHandled = false;
 
             switch (e.Key)
@@ -303,25 +303,25 @@ namespace TetrisAvalonia
 
             if (keyHandled)
             {
-                e.Handled = true; // Предотвращаем дальнейшую обработку
+                e.Handled = true; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 UpdateGameUI();
-                // Возвращаем фокус окну
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
                 this.Focus();
             }
         }
 
-        // === ОБРАБОТЧИКИ МЕНЮ ===
+        // === пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ ===
 
         private void BtnStartGame_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            // Сохраняем имя игрока
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             _playerName = string.IsNullOrWhiteSpace(PlayerNameTextBox.Text) ?
                 "Player" : PlayerNameTextBox.Text.Trim();
 
             if (_playerName.Length > 10)
                 _playerName = _playerName.Substring(0, 10);
 
-            // Переключаемся на экран игры
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             MenuScreen.IsVisible = false;
             GameScreen.IsVisible = true;
             StartGame();
@@ -329,10 +329,10 @@ namespace TetrisAvalonia
 
         private void BtnHighScoresMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            // Обновляем отображение рекордов
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             UpdateTopScore();
 
-            // Показываем диалог с рекордами
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             ShowHighScoresDialog();
         }
 
@@ -362,7 +362,7 @@ namespace TetrisAvalonia
             };
             stackPanel.Children.Add(title);
 
-            // Добавляем рекорды
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             int rank = 1;
             foreach (var score in _game.HighScores.OrderByDescending(h => h.Score).Take(10))
             {
@@ -431,7 +431,7 @@ namespace TetrisAvalonia
             UpdateTopScore();
         }
 
-        // === ОБРАБОТЧИКИ ИГРЫ ===
+        // === пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ ===
 
         private void BtnStart_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
@@ -457,9 +457,9 @@ namespace TetrisAvalonia
             _running = true;
             _timer.Start();
 
-            // Разблокируем BACK кнопку только после старта
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ BACK пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             BtnBackToMenu.IsEnabled = true;
-            BtnBackToMenu.Focusable = false; // Все равно не даем фокус
+            BtnBackToMenu.Focusable = false; // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 
             TxtGameState.Text = "PLAYING";
             TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(85, 255, 85));
@@ -467,10 +467,10 @@ namespace TetrisAvalonia
             RenderAll();
             UpdateGameUI();
 
-            // Устанавливаем фокус на окно
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
             this.Focus();
 
-            // Очищаем фокус с кнопок
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
             BtnStart.IsTabStop = false;
             BtnPause.IsTabStop = false;
         }
@@ -496,7 +496,7 @@ namespace TetrisAvalonia
 
             UpdateGameUI();
 
-            // Возвращаем фокус окну
+            // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
             this.Focus();
         }
     }
