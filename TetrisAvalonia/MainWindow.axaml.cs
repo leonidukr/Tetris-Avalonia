@@ -313,7 +313,7 @@ namespace TetrisAvalonia
 
             if (_playerName.Length > 10)
                 _playerName = _playerName.Substring(0, 10);
-
+            _game.PlayerName = _playerName;
             // ������������� �� ����� ����
             MenuScreen.IsVisible = false;
             GameScreen.IsVisible = true;
