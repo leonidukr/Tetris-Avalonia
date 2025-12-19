@@ -1,216 +1,289 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Media;
-using Avalonia.Threading;
+﻿using Avalonia.Media;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace TetrisAvalonia
 {
-    public partial class MainWindow : Window
+    public class HighScore
     {
-        private readonly TetrisGame _game;
-        private readonly DispatcherTimer _timer;
-        private bool _running = false;
+        public string Name { get; set; } = "Player";
+        public int Score { get; set; }
+    }
 
-        public MainWindow()
+    public class TetrisGame
+    {
+        public const int Width = 10;
+        public const int Height = 20;
+        public const int CellSize = 30;
+
+        private readonly int[,] _grid = new int[Height, Width];
+        private readonly Random _rnd = new Random();
+
+        // Shapes: 7 tetrominoes 4x4
+        private static readonly int[,,] SHAPES = new int[7, 4, 4]
         {
-            InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
-            _game = new TetrisGame();
-            DataContext = _game;
+            // I
+            {{0,0,0,0},{1,1,1,1},{0,0,0,0},{0,0,0,0}},
+            // J
+            {{2,0,0,0},{2,2,2,0},{0,0,0,0},{0,0,0,0}},
+            // L
+            {{0,0,3,0},{3,3,3,0},{0,0,0,0},{0,0,0,0}},
+            // O
+            {{0,4,4,0},{0,4,4,0},{0,0,0,0},{0,0,0,0}},
+            // S
+            {{0,5,5,0},{5,5,0,0},{0,0,0,0},{0,0,0,0}},
+            // T
+            {{0,6,0,0},{6,6,6,0},{0,0,0,0},{0,0,0,0}},
+            // Z
+            {{7,7,0,0},{0,7,7,0},{0,0,0,0},{0,0,0,0}},
+        };
 
-            // Timer for game ticks
-            _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(30); // render/update interval
-            _timer.Tick += Timer_Tick;
+        private readonly (byte r, byte g, byte b)[] COLORS = new (byte, byte, byte)[]
+        {
+            (17,17,17), // 0 background
+            (0,255,255), // 1 I - Cyan
+            (0,0,255),   // 2 J - Blue
+            (255,128,0), // 3 L - Orange
+            (255,255,0), // 4 O - Yellow
+            (0,255,0),   // 5 S - Green
+            (128,0,128), // 6 T - Purple
+            (255,0,0),   // 7 Z - Red
+        };
 
-            // Hook keyboard
-            this.KeyDown += MainWindow_KeyDown;
+        public int[,] Grid => _grid;
 
-            // Initial render
-            RenderAll();
-            UpdateUi();
+        // Current and next
+        private int[,] _current = new int[4, 4];
+        private int[,] _next = new int[4, 4];
+        public int[,]? CurrentPiece => _current;
+        public int[,]? NextPiece => _next;
+
+        public int CurrentX { get; private set; }
+        public int CurrentY { get; private set; }
+        public int CurrentColor { get; private set; } = 1;
+
+        private double _fallInterval = 0.5; // seconds
+        private double _accumulator = 0.0;
+
+        public int Score { get; private set; } = 0;
+        public int LinesCleared { get; private set; } = 0; // НОВОЕ: для подсчета линий
+
+        // High scores
+        private const string HS_FILE = "highscores.json";
+        public List<HighScore> HighScores { get; private set; } = new List<HighScore>();
+
+        public TetrisGame()
+        {
+            LoadHighScores();
+            Reset();
         }
 
-        private void Timer_Tick(object? sender, EventArgs e)
+        public void Reset()
         {
-            // Use accumulated time inside game
-            var needRender = _game.Update();
-            if (needRender)
+            Array.Clear(_grid, 0, _grid.Length);
+            SpawnNewPiece();
+            SpawnNextPiece();
+            Score = 0;
+            LinesCleared = 0;
+            _accumulator = 0.0;
+            _fallInterval = 0.5;
+        }
+
+        private void SpawnNextPiece()
+        {
+            int idx = _rnd.Next(0, 7);
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                    _next[y, x] = SHAPES[idx, y, x];
+        }
+
+        private void SpawnNewPiece()
+        {
+            // move next to current
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                    _current[y, x] = _next[y, x];
+
+            // new next
+            SpawnNextPiece();
+
+            CurrentX = Width / 2 - 2;
+            CurrentY = 0;
+
+            // if collision at spawn -> game over -> clear grid
+            if (CheckCollision(CurrentX, CurrentY, _current))
             {
-                RenderAll();
-                UpdateUi();
+                // Добавляем рекорд
+                AddHighScore("Player", Score);
+                Array.Clear(_grid, 0, _grid.Length);
+                Score = 0;
+                LinesCleared = 0;
             }
         }
 
-        private void UpdateUi()
+        public bool Update()
         {
-            TxtScore.Text = _game.Score.ToString();
-            TxtState.Text = _running ? "Running" : "Stopped";
-
-            // High scores
-            HighScoresList.ItemsSource = _game.HighScores.Select(h => $"{h.Name} - {h.Score}");
-
-
-            // Next piece render
-            RenderNext();
+            // Called from timer frequently. We'll accumulate time and step when needed.
+            _accumulator += 0.03; // match timer interval (30ms)
+            bool rendered = false;
+            if (_accumulator >= _fallInterval)
+            {
+                _accumulator = 0.0;
+                // Try move down
+                if (!TryMove(0, 1))
+                {
+                    MergeCurrent();
+                    ClearLines();
+                    SpawnNewPiece();
+                }
+                rendered = true;
+            }
+            return rendered;
         }
 
-        private void RenderNext()
+        public bool TryMove(int dx, int dy)
         {
-            NextCanvas.Children.Clear();
-            var block = _game.NextPiece;
-            if (block == null) return;
+            if (!CheckCollision(CurrentX + dx, CurrentY + dy, _current))
+            {
+                CurrentX += dx;
+                CurrentY += dy;
+                return true;
+            }
+            return false;
+        }
 
-            int cell = 20;
+        public void TryRotate()
+        {
+            int[,] rotated = new int[4, 4];
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                    rotated[x, 3 - y] = _current[y, x];
+
+            if (!CheckCollision(CurrentX, CurrentY, rotated))
+            {
+                _current = rotated;
+            }
+        }
+
+        public void HardDrop()
+        {
+            while (TryMove(0, 1)) { }
+            MergeCurrent();
+            ClearLines();
+            SpawnNewPiece();
+        }
+
+        private void MergeCurrent()
+        {
             for (int y = 0; y < 4; y++)
                 for (int x = 0; x < 4; x++)
                 {
-                    var v = block[y, x];
-                    if (v != 0)
+                    if (_current[y, x] != 0)
                     {
-                        var rect = new Avalonia.Controls.Shapes.Rectangle
-                        {
-                            Width = cell - 2,
-                            Height = cell - 2,
-                            Fill = new SolidColorBrush(_game.ColorFor(v)),
-                        };
-                        Canvas.SetLeft(rect, x * cell + 4);
-                        Canvas.SetTop(rect, y * cell + 4);
-                        NextCanvas.Children.Add(rect);
+                        int gx = CurrentX + x;
+                        int gy = CurrentY + y;
+                        if (gy >= 0 && gy < Height && gx >= 0 && gx < Width)
+                            _grid[gy, gx] = _current[y, x];
                     }
                 }
         }
 
-        private void RenderAll()
+        private void ClearLines()
         {
-            PlayfieldCanvas.Children.Clear();
-            int cell = TetrisGame.CellSize;
-            var grid = _game.Grid;
-            for (int y = 0; y < TetrisGame.Height; y++)
-                for (int x = 0; x < TetrisGame.Width; x++)
+            int cleared = 0;
+            for (int y = Height - 1; y >= 0; y--)
+            {
+                bool full = true;
+                for (int x = 0; x < Width; x++) if (_grid[y, x] == 0) { full = false; break; }
+                if (full)
                 {
-                    var v = grid[y, x];
-                    var rect = new Avalonia.Controls.Shapes.Rectangle
-                    {
-                        Width = cell - 2,
-                        Height = cell - 2,
-                        Fill = new SolidColorBrush(_game.ColorFor(v)),
-                    };
-                    Canvas.SetLeft(rect, x * cell + 1);
-                    Canvas.SetTop(rect, y * cell + 1);
-                    PlayfieldCanvas.Children.Add(rect);
-
-                    // Border
-                    var border = new Avalonia.Controls.Shapes.Rectangle
-                    {
-                        Width = cell,
-                        Height = cell,
-                        Stroke = Brushes.Gray,
-                        StrokeThickness = 1
-                    };
-                    Canvas.SetLeft(border, x * cell);
-                    Canvas.SetTop(border, y * cell);
-                    PlayfieldCanvas.Children.Add(border);
+                    cleared++;
+                    // move all above lines down
+                    for (int ty = y; ty > 0; ty--)
+                        for (int x = 0; x < Width; x++)
+                            _grid[ty, x] = _grid[ty - 1, x];
+                    for (int x = 0; x < Width; x++) _grid[0, x] = 0;
+                    y++; // recheck same y
                 }
-
-            // Draw current piece
-            var cur = _game.CurrentPiece;
-            if (cur != null)
+            }
+            if (cleared > 0)
             {
-                for (int y = 0; y < 4; y++)
-                    for (int x = 0; x < 4; x++)
-                    {
-                        var v = cur[y, x];
-                        if (v != 0)
-                        {
-                            var rect = new Avalonia.Controls.Shapes.Rectangle
-                            {
-                                Width = cell - 2,
-                                Height = cell - 2,
-                                Fill = new SolidColorBrush(_game.ColorFor(v))
-                            };
-                            Canvas.SetLeft(rect, (_game.CurrentX + x) * cell + 1);
-                            Canvas.SetTop(rect, (_game.CurrentY + y) * cell + 1);
-                            PlayfieldCanvas.Children.Add(rect);
-                        }
-                    }
+                // Подсчет очков за линии
+                int points = cleared switch
+                {
+                    1 => 100,
+                    2 => 300,
+                    3 => 500,
+                    4 => 800,
+                    _ => 0
+                };
+                Score += points;
+                LinesCleared += cleared;
+
+                // Увеличиваем скорость
+                _fallInterval = Math.Max(0.05, _fallInterval - cleared * 0.02);
             }
         }
 
-        private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
+        private bool CheckCollision(int px, int py, int[,] piece)
         {
-            if (!_running) return;
+            for (int y = 0; y < 4; y++)
+                for (int x = 0; x < 4; x++)
+                {
+                    if (piece[y, x] == 0) continue;
+                    int gx = px + x;
+                    int gy = py + y;
+                    if (gx < 0 || gx >= Width || gy >= Height) return true;
+                    if (gy >= 0 && _grid[gy, gx] != 0) return true;
+                }
+            return false;
+        }
 
-            switch (e.Key)
+        public Avalonia.Media.Color ColorFor(int value)
+        {
+            if (value < 0 || value >= COLORS.Length)
+                return Color.FromRgb(17, 17, 17);
+
+            var c = COLORS[value];
+            return Color.FromRgb(c.r, c.g, c.b);
+        }
+
+
+        // High scores
+        private void LoadHighScores()
+        {
+            try
             {
-                case Key.Left:
-                    _game.TryMove(-1, 0);
-                    RenderAll();
-                    break;
-                case Key.Right:
-                    _game.TryMove(1, 0);
-                    RenderAll();
-                    break;
-                case Key.Up:
-                    _game.TryRotate();
-                    RenderAll();
-                    break;
-                case Key.Down:
-                    _game.TryMove(0, 1);
-                    RenderAll();
-                    break;
-                case Key.Space:
-                    _game.HardDrop();
-                    RenderAll();
-                    break;
+                if (File.Exists(HS_FILE))
+                {
+                    var json = File.ReadAllText(HS_FILE);
+                    HighScores = JsonSerializer.Deserialize<List<HighScore>>(json) ?? new List<HighScore>();
+                }
             }
-
-            UpdateUi();
+            catch { HighScores = new List<HighScore>(); }
         }
 
-        private void BtnStart_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private void SaveHighScores()
         {
-            StartGame();
-        }
-
-        private void BtnPause_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            if (_running)
+            try
             {
-                PauseGame();
+                var json = JsonSerializer.Serialize(HighScores);
+                File.WriteAllText(HS_FILE, json);
             }
-            else
-            {
-                ResumeGame();
-            }
+            catch { }
         }
 
-        private void StartGame()
+        // Модифицируем метод AddHighScore чтобы принимать имя
+        public void AddHighScore(string name, int score)
         {
-            _game.Reset();
-            _running = true;
-            _timer.Start();
-            UpdateUi();
+            HighScores.Add(new HighScore { Name = name, Score = score });
+            HighScores = HighScores.OrderByDescending(h => h.Score).Take(5).ToList();
+            SaveHighScores();
         }
 
-        private void PauseGame()
-        {
-            _timer.Stop();
-            _running = false;
-            UpdateUi();
-        }
 
-        private void ResumeGame()
-        {
-            _timer.Start();
-            _running = true;
-            UpdateUi();
-        }
     }
 }
