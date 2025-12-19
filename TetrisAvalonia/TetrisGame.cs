@@ -74,7 +74,7 @@ namespace TetrisAvalonia
         // High scores
         private const string HS_FILE = "highscores.json";
         public List<HighScore> HighScores { get; private set; } = new List<HighScore>();
-        public string PlayerName { get; set; } = "Player";
+
         public TetrisGame()
         {
             LoadHighScores();
@@ -117,7 +117,7 @@ namespace TetrisAvalonia
             if (CheckCollision(CurrentX, CurrentY, _current))
             {
                 // Добавляем рекорд
-                AddHighScore(PlayerName, Score);
+                AddHighScore("Player", Score);
                 Array.Clear(_grid, 0, _grid.Length);
                 Score = 0;
                 LinesCleared = 0;
