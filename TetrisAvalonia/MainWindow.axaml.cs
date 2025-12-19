@@ -24,35 +24,36 @@ namespace TetrisAvalonia
 #endif
             _game = new TetrisGame();
 
-            // ������ ��� �������� �����
+            
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(30);
             _timer.Tick += Timer_Tick;
 
-            // ��������� ����������
+            
+           
             this.KeyDown += MainWindow_KeyDown;
 
-            // ��������� ������ ������ ��� ����
+            
             UpdateTopScore();
 
-            // ���������� ��������� ������ BACK, ����� ��� �� ������������� �����
+            
             BtnBackToMenu.IsEnabled = false;
-            BtnBackToMenu.Focusable = false; // �����: �� ���� �������� �����
+            BtnBackToMenu.Focusable = false; 
         }
-
+        // При получении фокуса — если видим игровой экран, устанавливаем фокус на окно
         protected override void OnGotFocus(GotFocusEventArgs e)
         {
             base.OnGotFocus(e);
-            // ��� ��������� ������ ����� - ����� ���� ����� �������� ����
+            
             if (GameScreen.IsVisible)
             {
-                // ������� ��������� ������� ��� ������
+                
                 var focusHelper = new Control
                 {
                     Focusable = true,
                     IsVisible = false
                 };
-                // ����� ����� ���������� ����� �� ����
+                // Вспомогательный контроль для фокуса (не добавляется в визуальное дерево)
                 this.Focus();
             }
         }
@@ -142,10 +143,10 @@ namespace TetrisAvalonia
             var block = _game.NextPiece;
             if (block == null) return;
 
-            // ������� ������ ��� ������ � ���� NEXT
-            int cell = 18; // �������� ������ � 25 �� 18
+            // Рисуем следующий блок в области NEXT
+            int cell = 18; // Размер ячейки для области NEXT (уменьшен с 25 до 18)
 
-            // ������� ������� ������, ����� ������������ ��
+            // Находим границы фигуры внутри 4x4, чтобы корректно центрировать
             int minX = 4, maxX = 0, minY = 4, maxY = 0;
             bool hasBlocks = false;
 
@@ -164,7 +165,7 @@ namespace TetrisAvalonia
 
             if (!hasBlocks) return;
 
-            // ���������� ������
+            // Вычисляем ширину/высоту и смещения для центрирования фигуры в квадрате 80x80
             int width = (maxX - minX + 1) * cell;
             int height = (maxY - minY + 1) * cell;
             int offsetX = (80 - width) / 2 - minX * cell;
@@ -197,11 +198,11 @@ namespace TetrisAvalonia
             int cell = TetrisGame.CellSize;
             var grid = _game.Grid;
 
-            // ����� �������� ����
+            // Рисуем поле (сетка ячеек)
             for (int y = 0; y < TetrisGame.Height; y++)
                 for (int x = 0; x < TetrisGame.Width; x++)
                 {
-                    // ������ �����
+                    // Фон/ячейка поля
                     var border = new Avalonia.Controls.Shapes.Rectangle
                     {
                         Width = cell,
@@ -214,7 +215,7 @@ namespace TetrisAvalonia
                     Canvas.SetTop(border, y * cell);
                     PlayfieldCanvas.Children.Add(border);
 
-                    // ���� (���� ����)
+                    // Заполненные блоки (фиксированные в сетке)
                     var v = grid[y, x];
                     if (v != 0)
                     {
@@ -232,7 +233,7 @@ namespace TetrisAvalonia
                     }
                 }
 
-            // ������� ������
+            // Отрисовка текущей падающей фигуры
             var cur = _game.CurrentPiece;
             if (cur != null)
             {
@@ -262,7 +263,7 @@ namespace TetrisAvalonia
         {
             if (!_running) return;
 
-            // ��������� ������� ������
+            // Обработка управляющих клавиш игры
             bool keyHandled = false;
 
             switch (e.Key)
@@ -296,25 +297,25 @@ namespace TetrisAvalonia
 
             if (keyHandled)
             {
-                e.Handled = true; // ������������� ���������� ���������
+                e.Handled = true; // Останавливаем дальнейшую обработку события
                 UpdateGameUI();
-                // ���������� ����� ����
+                // Возвращаем фокус окну, чтобы продолжать получать клавиатурные события
                 this.Focus();
             }
         }
 
-        // === ����������� ���� ===
+        // === Управление меню ===
 
         private void BtnStartGame_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            // ��������� ��� ������
+            // Получаем имя игрока из текстового поля
             _playerName = string.IsNullOrWhiteSpace(PlayerNameTextBox.Text) ?
                 "Player" : PlayerNameTextBox.Text.Trim();
 
             if (_playerName.Length > 10)
                 _playerName = _playerName.Substring(0, 10);
             _game.PlayerName = _playerName;
-            // ������������� �� ����� ����
+            // Скрываем меню и показываем экран игры
             MenuScreen.IsVisible = false;
             GameScreen.IsVisible = true;
             StartGame();
@@ -322,10 +323,10 @@ namespace TetrisAvalonia
 
         private void BtnHighScoresMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            // ��������� ����������� ��������
+            // Обновляем лучший результат перед показом
             UpdateTopScore();
 
-            // ���������� ������ � ���������
+            // Показываем окно рекордов
             ShowHighScoresDialog();
         }
 
@@ -355,7 +356,7 @@ namespace TetrisAvalonia
             };
             stackPanel.Children.Add(title);
 
-            // ��������� �������
+            // Список рекордов
             int rank = 1;
             foreach (var score in _game.HighScores.OrderByDescending(h => h.Score).Take(10))
             {
@@ -424,7 +425,7 @@ namespace TetrisAvalonia
             UpdateTopScore();
         }
 
-        // === ����������� ���� ===
+        // === Кнопки управления игрой ===
 
         private void BtnStart_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
@@ -450,9 +451,9 @@ namespace TetrisAvalonia
             _running = true;
             _timer.Start();
 
-            // ������������ BACK ������ ������ ����� ������
+            // Активируем кнопку возврата в меню
             BtnBackToMenu.IsEnabled = true;
-            BtnBackToMenu.Focusable = false; // ��� ����� �� ���� �����
+            BtnBackToMenu.Focusable = false; // чтобы элемент не получал фокус при навигации
 
             TxtGameState.Text = "PLAYING";
             TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(85, 255, 85));
@@ -460,10 +461,10 @@ namespace TetrisAvalonia
             RenderAll();
             UpdateGameUI();
 
-            // ������������� ����� �� ����
+            // Устанавливаем фокус на окно
             this.Focus();
 
-            // ������� ����� � ������
+            // Отключаем Tab-осты для кнопок Start/Pause
             BtnStart.IsTabStop = false;
             BtnPause.IsTabStop = false;
         }
@@ -489,7 +490,7 @@ namespace TetrisAvalonia
 
             UpdateGameUI();
 
-            // ���������� ����� ����
+            // Возвращаем фокус окну
             this.Focus();
         }
     }
