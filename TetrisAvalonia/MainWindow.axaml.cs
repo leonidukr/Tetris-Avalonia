@@ -309,10 +309,13 @@ namespace TetrisAvalonia
         {
             // ��������� ��� ������
             _playerName = string.IsNullOrWhiteSpace(PlayerNameTextBox.Text) ?
-                "Player" : PlayerNameTextBox.Text.Trim();
+            "Player" : PlayerNameTextBox.Text.Trim();
 
             if (_playerName.Length > 10)
                 _playerName = _playerName.Substring(0, 10);
+
+            // Передаем имя в игру
+            _game.PlayerName = _playerName;
 
             // ������������� �� ����� ����
             MenuScreen.IsVisible = false;
