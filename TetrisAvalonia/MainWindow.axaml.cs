@@ -70,24 +70,17 @@ namespace TetrisAvalonia
         private void UpdateGameUI()
         {
             TxtScore.Text = _game.Score.ToString("N0");
-
-            // ��������� ��������� ����
             TxtGameState.Text = _running ? "PLAYING" : "PAUSED";
 
-            // ������� (������� �� ���������� ��������� �����)
-            int level = (_totalLinesCleared / 10) + 1;
+            // Используем LinesCleared из игры
+            int lines = _game.LinesCleared;
+            int level = (lines / 10) + 1;
+
             TxtLevel.Text = level.ToString();
-
-            // ���������� �����
-            TxtLines.Text = _totalLinesCleared.ToString();
-
-            // ��� ������
+            TxtLines.Text = lines.ToString();
             TxtPlayerName.Text = _playerName;
 
-            // ��������� ������
             RenderNext();
-
-            // ��������� ������� ��������
             UpdateHighScoresList();
         }
 
