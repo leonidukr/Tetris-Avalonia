@@ -12,7 +12,7 @@ namespace TetrisAvalonia
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                desktop.MainWindow = new MainWindow(); // »√–¿“‹ —–¿«” — Ã≈Õﬁ
             }
 
             base.OnFrameworkInitializationCompleted();

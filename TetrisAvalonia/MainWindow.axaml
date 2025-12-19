@@ -1,27 +1,245 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="TetrisAvalonia.MainWindow"
-        Width="700" Height="700"
-        Title="Tetris - Avalonia">
-	<Grid ColumnDefinitions="Auto, 300" RowDefinitions="*">
-		<!-- Playfield -->
-		<Border Background="#111" Padding="10">
-			<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
-				<Canvas Name="PlayfieldCanvas" Width="300" Height="600" />
-			</ScrollViewer>
+        Width="900" Height="700"
+        Title="Tetris"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
+
+	<Grid Background="#0a0a0a">
+		<!-- ЭКРАН МЕНЮ -->
+		<Border Name="MenuScreen" Background="#0a0a0a" Width="900" Height="700" IsVisible="True">
+			<Grid>
+				<!-- Фоновые блоки тетриса -->
+				<Canvas Opacity="0.3">
+					<Rectangle Fill="#FF5555" Width="120" Height="120" Canvas.Left="100" Canvas.Top="150" Opacity="0.7"/>
+					<Rectangle Fill="#55FF55" Width="120" Height="120" Canvas.Left="650" Canvas.Top="200" Opacity="0.7"/>
+					<Rectangle Fill="#5555FF" Width="120" Height="120" Canvas.Left="200" Canvas.Top="450" Opacity="0.7"/>
+					<Rectangle Fill="#FFFF55" Width="120" Height="120" Canvas.Left="600" Canvas.Top="400" Opacity="0.7"/>
+				</Canvas>
+
+				<!-- Основной контент меню -->
+				<StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="30">
+					<!-- Заголовок -->
+					<StackPanel HorizontalAlignment="Center" Spacing="5">
+						<TextBlock Text="TETRIS" FontSize="72" FontWeight="Bold"
+                                   Foreground="#FF5555" HorizontalAlignment="Center"/>
+						<TextBlock Text="Classic Edition" FontSize="20" Foreground="#888"
+                                   HorizontalAlignment="Center"/>
+					</StackPanel>
+
+					<!-- Кнопки меню -->
+					<StackPanel HorizontalAlignment="Center" Spacing="15" Width="300">
+						<Button Name="BtnStartGame" Content="▶ START GAME"
+                                Height="60" FontSize="22" FontWeight="SemiBold"
+                                Background="#FF5555" Foreground="White"
+                                BorderThickness="0" CornerRadius="5"
+                                Click="BtnStartGame_Click">
+							<Button.Styles>
+								<Style Selector="Button:pointerover">
+									<Setter Property="Background" Value="#FF3333"/>
+									<Setter Property="Cursor" Value="Hand"/>
+								</Style>
+							</Button.Styles>
+						</Button>
+
+						<Button Name="BtnHighScoresMenu" Content="🏆 HIGH SCORES"
+                                Height="50" FontSize="18"
+                                Background="#333" Foreground="White"
+                                BorderThickness="0" CornerRadius="5"
+                                Click="BtnHighScoresMenu_Click">
+							<Button.Styles>
+								<Style Selector="Button:pointerover">
+									<Setter Property="Background" Value="#444"/>
+									<Setter Property="Cursor" Value="Hand"/>
+								</Style>
+							</Button.Styles>
+						</Button>
+
+						<Button Name="BtnExit" Content="🚪 EXIT"
+                                Height="50" FontSize="18"
+                                Background="#333" Foreground="White"
+                                BorderThickness="0" CornerRadius="5"
+                                Click="BtnExit_Click">
+							<Button.Styles>
+								<Style Selector="Button:pointerover">
+									<Setter Property="Background" Value="#444"/>
+									<Setter Property="Cursor" Value="Hand"/>
+								</Style>
+							</Button.Styles>
+						</Button>
+					</StackPanel>
+
+					<!-- Текущий рекорд -->
+					<Border Background="#222" CornerRadius="10" Padding="20" Width="400">
+						<StackPanel HorizontalAlignment="Center" Spacing="10">
+							<TextBlock Text="TOP SCORE" FontSize="16" Foreground="#888"
+                                       HorizontalAlignment="Center"/>
+							<TextBlock Name="TxtTopScore" Text="0" FontSize="32"
+                                       Foreground="#FFD700" HorizontalAlignment="Center"/>
+							<TextBlock Text="Best Player" FontSize="14" Foreground="#666"
+                                       HorizontalAlignment="Center"/>
+						</StackPanel>
+					</Border>
+
+					<!-- Управление -->
+					<TextBlock Text="CONTROLS: ← → ↑ ↓ SPACE" FontSize="14" Foreground="#666"
+                               HorizontalAlignment="Center"/>
+				</StackPanel>
+
+				<!-- Версия -->
+				<TextBlock Text="v1.0" Margin="15" VerticalAlignment="Bottom"
+                           HorizontalAlignment="Right" Foreground="#444" FontSize="12"/>
+			</Grid>
 		</Border>
 
-		<!-- Info panel -->
-		<StackPanel Grid.Column="1" Margin="12">
-			<TextBlock Name="TxtState" FontSize="18" Margin="0,0,0,8" />
+		<!-- ЭКРАН ИГРЫ -->
+		<Grid Name="GameScreen" ColumnDefinitions="Auto, 400" IsVisible="False">
+			<!-- Игровое поле -->
+			<Border Grid.Column="0" Background="#111" Padding="20" Margin="20,20,0,20">
+				<Grid>
+					<Canvas Name="PlayfieldCanvas" Width="300" Height="600" Background="#0a0a0a">
+						<!-- Сетка будет рисоваться в коде -->
+					</Canvas>
 
-			<StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-				<Button Name="BtnStart" Content="Start" Width="80" Click="BtnStart_Click"/>
-				<Button Name="BtnPause" Content="Pause" Width="80" Margin="8,0,0,0" Click="BtnPause_Click"/>
-			</StackPanel>
-			
-			<TextBlock Text="Controls:" Margin="0,20,0,4"/>
-			<TextBlock Text="← → move, ↑ rotate, ↓ soft drop, Space hard drop" TextWrapping="Wrap"/>
-		</StackPanel>
+					<!-- Кнопка назад в меню -->
+					<Button Name="BtnBackToMenu" Content="← MENU"
+                            Width="80" Height="30" FontSize="12"
+                            Background="#333" Foreground="White"
+                            BorderThickness="0" CornerRadius="3"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="10" Click="BtnBackToMenu_Click">
+						<Button.Styles>
+							<Style Selector="Button:pointerover">
+								<Setter Property="Background" Value="#444"/>
+								<Setter Property="Cursor" Value="Hand"/>
+							</Style>
+						</Button.Styles>
+					</Button>
+				</Grid>
+			</Border>
+
+			<!-- Панель информации -->
+			<Border Grid.Column="1" Background="#1a1a1a" Margin="0,20,20,20" CornerRadius="10">
+				<Grid Margin="20">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<!-- Заголовок -->
+					<StackPanel Grid.Row="0" Spacing="5" Margin="0,0,0,20">
+						<TextBlock Text="TETRIS" FontSize="24" FontWeight="Bold"
+                                   Foreground="#FF5555"/>
+						<TextBlock Name="TxtGameState" Text="READY" FontSize="14"
+                                   Foreground="#55FF55"/>
+					</StackPanel>
+
+					<!-- Статистика игры -->
+					<StackPanel Grid.Row="1" Spacing="15">
+						<!-- Счет -->
+						<Border Background="#222" CornerRadius="8" Padding="15">
+							<StackPanel>
+								<TextBlock Text="SCORE" FontSize="14" Foreground="#888"/>
+								<TextBlock Name="TxtScore" Text="0" FontSize="36"
+                                           Foreground="White" FontWeight="Bold"/>
+							</StackPanel>
+						</Border>
+
+						<!-- Уровень и линии -->
+						<Grid ColumnDefinitions="*,*" Margin="0,10,0,0">
+							<Border Grid.Column="0" Background="#222" CornerRadius="8"
+                                    Padding="15" Margin="0,0,5,0">
+								<StackPanel>
+									<TextBlock Text="LEVEL" FontSize="12" Foreground="#888"/>
+									<TextBlock Name="TxtLevel" Text="1" FontSize="24"
+                                               Foreground="#55FF55"/>
+								</StackPanel>
+							</Border>
+
+							<Border Grid.Column="1" Background="#222" CornerRadius="8"
+                                    Padding="15" Margin="5,0,0,0">
+								<StackPanel>
+									<TextBlock Text="LINES" FontSize="12" Foreground="#888"/>
+									<TextBlock Name="TxtLines" Text="0" FontSize="24"
+                                               Foreground="#5555FF"/>
+								</StackPanel>
+							</Border>
+						</Grid>
+
+						<!-- Следующая фигура -->
+						<Border Background="#222" CornerRadius="8" Padding="15" Margin="0,10,0,0">
+							<StackPanel>
+								<TextBlock Text="NEXT" FontSize="14" Foreground="#888"
+                                           Margin="0,0,0,10"/>
+								<Canvas Name="NextCanvas" Width="100" Height="100"
+                                        Background="#0a0a0a" HorizontalAlignment="Center">
+									<!-- Фигура будет рисоваться в коде -->
+								</Canvas>
+							</StackPanel>
+						</Border>
+
+						<!-- Таблица рекордов -->
+						<Border Background="#222" CornerRadius="8" Padding="15">
+							<StackPanel>
+								<TextBlock Text="HIGH SCORES" FontSize="14" Foreground="#888"
+                                           Margin="0,0,0,10"/>
+								<ItemsControl Name="HighScoresList">
+									<!-- Без шаблона, будем заполнять в коде -->
+								</ItemsControl>
+							</StackPanel>
+						</Border>
+					</StackPanel>
+
+					<!-- Кнопки управления -->
+					<StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10"
+                                HorizontalAlignment="Center" Margin="0,20,0,0">
+						<Button Name="BtnStart" Content="▶ START" Width="100" Height="40"
+                                Background="#55FF55" Foreground="Black" FontWeight="Bold"
+                                BorderThickness="0" CornerRadius="5"
+                                Click="BtnStart_Click">
+							<Button.Styles>
+								<Style Selector="Button:pointerover">
+									<Setter Property="Background" Value="#44EE44"/>
+									<Setter Property="Cursor" Value="Hand"/>
+								</Style>
+							</Button.Styles>
+						</Button>
+
+						<Button Name="BtnPause" Content="⏸ PAUSE" Width="100" Height="40"
+                                Background="#5555FF" Foreground="White" FontWeight="Bold"
+                                BorderThickness="0" CornerRadius="5"
+                                Click="BtnPause_Click">
+							<Button.Styles>
+								<Style Selector="Button:pointerover">
+									<Setter Property="Background" Value="#4444EE"/>
+									<Setter Property="Cursor" Value="Hand"/>
+								</Style>
+							</Button.Styles>
+						</Button>
+					</StackPanel>
+
+					<!-- Управление -->
+					<StackPanel Grid.Row="3" Margin="0,20,0,0">
+						<TextBlock Text="CONTROLS" FontSize="12" Foreground="#888"
+                                   Margin="0,0,0,5"/>
+						<Grid ColumnDefinitions="*,*,*,*" Margin="0,0,0,5">
+							<TextBlock Grid.Column="0" Text="← →" Foreground="White"/>
+							<TextBlock Grid.Column="1" Text="MOVE" Foreground="#888"/>
+							<TextBlock Grid.Column="2" Text="↑" Foreground="White"/>
+							<TextBlock Grid.Column="3" Text="ROTATE" Foreground="#888"/>
+						</Grid>
+						<Grid ColumnDefinitions="*,*,*,*">
+							<TextBlock Grid.Column="0" Text="↓" Foreground="White"/>
+							<TextBlock Grid.Column="1" Text="DROP" Foreground="#888"/>
+							<TextBlock Grid.Column="2" Text="SPACE" Foreground="White"/>
+							<TextBlock Grid.Column="3" Text="HARD DROP" Foreground="#888"/>
+						</Grid>
+					</StackPanel>
+				</Grid>
+			</Border>
+		</Grid>
 	</Grid>
 </Window>
