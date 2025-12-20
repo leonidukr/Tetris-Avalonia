@@ -6,13 +6,13 @@ using System.Linq;
 using System.Text.Json;
 
 namespace TetrisAvalonia
-{
+{   // Класс для хранения рекордов
     public class HighScore
     {
         public string Name { get; set; } = "Player";
         public int Score { get; set; }
     }
-
+    // Основной класс игры Тетрис
     public class TetrisGame
     {
         public const int Width = 10;
@@ -22,7 +22,7 @@ namespace TetrisAvalonia
         private readonly int[,] _grid = new int[Height, Width];
         private readonly Random _rnd = new Random();
 
-        // Shapes: 7 tetrominoes 4x4
+        // Фигуры: 7 тетромино в формате 4x4
         private static readonly int[,,] SHAPES = new int[7, 4, 4]
         {
             // I
@@ -43,19 +43,19 @@ namespace TetrisAvalonia
 
         private readonly (byte r, byte g, byte b)[] COLORS = new (byte, byte, byte)[]
         {
-            (17,17,17), // 0 background
-            (0,255,255), // 1 I - Cyan
-            (0,0,255),   // 2 J - Blue
-            (255,128,0), // 3 L - Orange
-            (255,255,0), // 4 O - Yellow
-            (0,255,0),   // 5 S - Green
-            (128,0,128), // 6 T - Purple
-            (255,0,0),   // 7 Z - Red
+            (17,17,17), // 0 фон
+            (0,255,255), // 1 I - бирюзовый
+            (0,0,255),   // 2 J - синий
+            (255,128,0), // 3 L - оранжевый
+            (255,255,0), // 4 O - желтый
+            (0,255,0),   // 5 S - зеленый
+            (128,0,128), // 6 T - фиолетовый
+            (255,0,0),   // 7 Z - красный
         };
 
         public int[,] Grid => _grid;
 
-        // Current and next
+        // Текущая и следующая фигуры
         private int[,] _current = new int[4, 4];
         private int[,] _next = new int[4, 4];
         public int[,]? CurrentPiece => _current;
@@ -65,13 +65,17 @@ namespace TetrisAvalonia
         public int CurrentY { get; private set; }
         public int CurrentColor { get; private set; } = 1;
 
-        private double _fallInterval = 0.5; // seconds
+        private double _fallInterval = 0.5; // секунды
         private double _accumulator = 0.0;
 
         public int Score { get; private set; } = 0;
-        public int LinesCleared { get; private set; } = 0; // НОВОЕ: для подсчета линий
+        public int LinesCleared { get; private set; } = 0; // для подсчёта очищенных линий
         public string PlayerName { get; set; } = "Player";
-        // High scores
+
+        // Флаг конца игры
+        public bool IsGameOver { get; private set; } = false;
+
+        // Таблица рекордов
         private const string HS_FILE = "highscores.json";
         public List<HighScore> HighScores { get; private set; } = new List<HighScore>();
 
@@ -80,18 +84,19 @@ namespace TetrisAvalonia
             LoadHighScores();
             Reset();
         }
-
+        // Сброс игры
         public void Reset()
         {
             Array.Clear(_grid, 0, _grid.Length);
-            SpawnNewPiece();
             SpawnNextPiece();
+            SpawnNewPiece();
             Score = 0;
             LinesCleared = 0;
             _accumulator = 0.0;
             _fallInterval = 0.5;
+            IsGameOver = false;
         }
-
+        // Спавн следующей фигуры
         private void SpawnNextPiece()
         {
             int idx = _rnd.Next(0, 7);
@@ -99,40 +104,41 @@ namespace TetrisAvalonia
                 for (int x = 0; x < 4; x++)
                     _next[y, x] = SHAPES[idx, y, x];
         }
-
+        // Спавн текущей фигуры
         private void SpawnNewPiece()
         {
-            // move next to current
+            // переносим следующую фигуру в текущую
             for (int y = 0; y < 4; y++)
                 for (int x = 0; x < 4; x++)
                     _current[y, x] = _next[y, x];
 
-            // new next
+            // генерируем новую следующую фигуру
             SpawnNextPiece();
 
             CurrentX = Width / 2 - 2;
             CurrentY = 0;
 
-            // if collision at spawn -> game over -> clear grid
+            // если при спавне происходит коллизия — это конец игры
             if (CheckCollision(CurrentX, CurrentY, _current))
             {
-                // Добавляем рекорд
-                AddHighScore(PlayerName, Score);
-                Array.Clear(_grid, 0, _grid.Length);
-                Score = 0;
-                LinesCleared = 0;
+                // отмечаем окончание игры — UI/хост должны показать диалог и сохранить рекорд
+                IsGameOver = true;
+                return;
             }
         }
-
+        // Обновление состояния игры
         public bool Update()
         {
-            // Called from timer frequently. We'll accumulate time and step when needed.
-            _accumulator += 0.03; // match timer interval (30ms)
+            // если игра окончена — не продвигаем падение фигур
+            if (IsGameOver) return false;
+
+            // Вызывается таймером часто. Накопим время и выполним шаг, когда нужно.
+            _accumulator += 0.03; // соответствует интервалу таймера (30ms)
             bool rendered = false;
             if (_accumulator >= _fallInterval)
             {
                 _accumulator = 0.0;
-                // Try move down
+                // пробуем сдвинуть вниз
                 if (!TryMove(0, 1))
                 {
                     MergeCurrent();
@@ -143,7 +149,7 @@ namespace TetrisAvalonia
             }
             return rendered;
         }
-
+        // Попытка сдвинуть текущую фигуру
         public bool TryMove(int dx, int dy)
         {
             if (!CheckCollision(CurrentX + dx, CurrentY + dy, _current))
@@ -154,7 +160,7 @@ namespace TetrisAvalonia
             }
             return false;
         }
-
+        // Попытка повернуть текущую фигуру
         public void TryRotate()
         {
             int[,] rotated = new int[4, 4];
@@ -167,7 +173,7 @@ namespace TetrisAvalonia
                 _current = rotated;
             }
         }
-
+        // Мгновенное падение текущей фигуры
         public void HardDrop()
         {
             while (TryMove(0, 1)) { }
@@ -175,7 +181,7 @@ namespace TetrisAvalonia
             ClearLines();
             SpawnNewPiece();
         }
-
+        // Слияние текущей фигуры с сеткой
         private void MergeCurrent()
         {
             for (int y = 0; y < 4; y++)
@@ -190,7 +196,7 @@ namespace TetrisAvalonia
                     }
                 }
         }
-
+        // Очистка заполненных линий
         private void ClearLines()
         {
             int cleared = 0;
@@ -201,17 +207,17 @@ namespace TetrisAvalonia
                 if (full)
                 {
                     cleared++;
-                    // move all above lines down
+                    // сдвигаем все строки выше вниз
                     for (int ty = y; ty > 0; ty--)
                         for (int x = 0; x < Width; x++)
                             _grid[ty, x] = _grid[ty - 1, x];
                     for (int x = 0; x < Width; x++) _grid[0, x] = 0;
-                    y++; // recheck same y
+                    y++; // повторно проверить ту же строку
                 }
             }
             if (cleared > 0)
             {
-                // Подсчет очков за линии
+                // подсчёт очков за очищенные линии
                 int points = cleared switch
                 {
                     1 => 100,
@@ -223,11 +229,11 @@ namespace TetrisAvalonia
                 Score += points;
                 LinesCleared += cleared;
 
-                // Увеличиваем скорость
+                // увеличиваем скорость падения
                 _fallInterval = Math.Max(0.05, _fallInterval - cleared * 0.02);
             }
         }
-
+        // Проверка коллизий текущей фигуры с сеткой
         private bool CheckCollision(int px, int py, int[,] piece)
         {
             for (int y = 0; y < 4; y++)
@@ -252,7 +258,7 @@ namespace TetrisAvalonia
         }
 
 
-        // High scores
+        // Загрузка таблицы рекордов
         private void LoadHighScores()
         {
             try
@@ -266,6 +272,7 @@ namespace TetrisAvalonia
             catch { HighScores = new List<HighScore>(); }
         }
 
+        // Сохранение таблицы рекордов
         private void SaveHighScores()
         {
             try
@@ -276,7 +283,7 @@ namespace TetrisAvalonia
             catch { }
         }
 
-        // Модифицируем метод AddHighScore чтобы принимать имя
+        // Добавление рекорда с именем игрока
         public void AddHighScore(string name, int score)
         {
             HighScores.Add(new HighScore { Name = name, Score = score });

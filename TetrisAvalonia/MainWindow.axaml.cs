@@ -7,7 +7,7 @@ using System;
 using System.Linq;
 
 namespace TetrisAvalonia
-{
+{   // Главный класс окна приложения
     public partial class MainWindow : Window
     {
         private readonly TetrisGame _game;
@@ -15,7 +15,7 @@ namespace TetrisAvalonia
         private bool _running = false;
         private int _totalLinesCleared = 0;
         private string _playerName = "Player";
-
+        // Конструктор окна
         public MainWindow()
         {
             InitializeComponent();
@@ -30,7 +30,7 @@ namespace TetrisAvalonia
             _timer.Tick += Timer_Tick;
 
             
-           
+            
             this.KeyDown += MainWindow_KeyDown;
 
             
@@ -57,7 +57,7 @@ namespace TetrisAvalonia
                 this.Focus();
             }
         }
-
+        // Таймер игры — обновление состояния и отрисовка
         private void Timer_Tick(object? sender, EventArgs e)
         {
             var needRender = _game.Update();
@@ -66,8 +66,26 @@ namespace TetrisAvalonia
                 RenderAll();
                 UpdateGameUI();
             }
-        }
 
+            // Обработка окончания игры
+            if (_game.IsGameOver && _running)
+            {
+                // Останавливаем игру и показываем диалог
+                _timer.Stop();
+                _running = false;
+
+                TxtGameState.Text = "GAME OVER";
+                TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(255, 50, 50));
+
+                // Добавляем рекорд и обновляем списки
+                _game.AddHighScore(_playerName, _game.Score);
+                UpdateHighScoresList();
+                UpdateTopScore();
+
+                ShowGameOverDialog(_game.Score);
+            }
+        }
+        // Обновление элементов UI с информацией об игре
         private void UpdateGameUI()
         {
             TxtScore.Text = _game.Score.ToString("N0");
@@ -84,7 +102,7 @@ namespace TetrisAvalonia
             RenderNext();
             UpdateHighScoresList();
         }
-
+        //  Обновление списка рекордов в боковой панели
         private void UpdateHighScoresList()
         {
             HighScoresList.Items.Clear();
@@ -127,7 +145,7 @@ namespace TetrisAvalonia
                 HighScoresList.Items.Add(border);
             }
         }
-
+        // Обновление отображения лучшего результата на главном экране
         private void UpdateTopScore()
         {
             if (_game.HighScores.Any())
@@ -136,7 +154,7 @@ namespace TetrisAvalonia
                 TxtTopScore.Text = topScore.Score.ToString("N0");
             }
         }
-
+        // Отрисовка следующей фигуры в области NEXT
         private void RenderNext()
         {
             NextCanvas.Children.Clear();
@@ -191,7 +209,7 @@ namespace TetrisAvalonia
                     }
                 }
         }
-
+        // Полная отрисовка игрового поля
         private void RenderAll()
         {
             PlayfieldCanvas.Children.Clear();
@@ -258,7 +276,7 @@ namespace TetrisAvalonia
                     }
             }
         }
-
+        
         private void MainWindow_KeyDown(object? sender, KeyEventArgs e)
         {
             if (!_running) return;
@@ -314,11 +332,17 @@ namespace TetrisAvalonia
 
             if (_playerName.Length > 10)
                 _playerName = _playerName.Substring(0, 10);
-            _game.PlayerName = _playerName;
+            _game.PlayerName = _player_name();
             // Скрываем меню и показываем экран игры
             MenuScreen.IsVisible = false;
             GameScreen.IsVisible = true;
             StartGame();
+        }
+
+        // Получение имени игрока
+        private string _player_name()
+        {
+            return _playerName;
         }
 
         private void BtnHighScoresMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -329,7 +353,7 @@ namespace TetrisAvalonia
             // Показываем окно рекордов
             ShowHighScoresDialog();
         }
-
+        // Показ диалога с рекордами
         private void ShowHighScoresDialog()
         {
             var dialog = new Window
@@ -339,12 +363,12 @@ namespace TetrisAvalonia
                 Height = 400,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
-
+            // Создаем содержимое диалога
             var stackPanel = new StackPanel
             {
                 Margin = new Thickness(20)
             };
-
+            // Заголовок
             var title = new TextBlock
             {
                 Text = "HIGH SCORES",
@@ -367,12 +391,12 @@ namespace TetrisAvalonia
                     Margin = new Thickness(0, 0, 0, 5),
                     Padding = new Thickness(10)
                 };
-
+                // Создаем строку для рекорда
                 var grid = new Grid();
                 grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
                 grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
                 grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-
+                // Ранг
                 var rankText = new TextBlock
                 {
                     Text = $"{rank}.",
@@ -380,14 +404,14 @@ namespace TetrisAvalonia
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 10, 0)
                 };
-
+                // Имя игрока
                 var nameText = new TextBlock
                 {
                     Text = score.Name,
                     Foreground = Brushes.White,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                 };
-
+                // Очки
                 var scoreText = new TextBlock
                 {
                     Text = score.Score.ToString("N0"),
@@ -395,7 +419,7 @@ namespace TetrisAvalonia
                     FontWeight = FontWeight.Bold,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                 };
-
+                // Располагаем элементы в сетке
                 Grid.SetColumn(nameText, 1);
                 Grid.SetColumn(scoreText, 2);
 
@@ -407,16 +431,102 @@ namespace TetrisAvalonia
                 stackPanel.Children.Add(border);
                 rank++;
             }
-
+            // Если нет рекордов
             dialog.Content = stackPanel;
             dialog.ShowDialog(this);
         }
-
+        // Показ диалога "Game Over"
+        private void ShowGameOverDialog(int score)
+        {   // Создаем и настраиваем окно диалога
+            var dialog = new Window
+            {
+                Title = "Game Over",
+                Width = 360,
+                Height = 220,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            //  Создаем содержимое диалога
+            var root = new StackPanel
+            {
+                Margin = new Thickness(20),
+                Spacing = 12
+            };
+            // Заголовок
+            var title = new TextBlock
+            {
+                Text = "GAME OVER",
+                FontSize = 22,
+                FontWeight = FontWeight.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(255, 50, 50)),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            };
+            root.Children.Add(title);
+            // Текст с набранными очками
+            var scoreText = new TextBlock
+            {
+                Text = $"SCORE: {score:N0}",
+                FontSize = 18,
+                Foreground = Brushes.White,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            };
+            root.Children.Add(scoreText);
+            // Кнопки RESTART и MENU
+            var buttons = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Spacing = 10
+            };
+            //  Кнопка RESTART
+            var btnRestart = new Button
+            {
+                Content = "RESTART",
+                Width = 120,
+                Height = 40,
+                Background = new SolidColorBrush(Color.FromRgb(85, 255, 85)),
+                Foreground = Brushes.Black,
+                FontWeight = FontWeight.Bold,
+                CornerRadius = new CornerRadius(5)
+            };
+            // Обработчик клика по кнопке RESTART
+            btnRestart.Click += (s, e) =>
+            {
+                dialog.Close();
+                // перезапускаем игру
+                StartGame();
+            };
+            // Кнопка MENU
+            var btnMenu = new Button
+            {
+                Content = "MENU",
+                Width = 120,
+                Height = 40,
+                Background = new SolidColorBrush(Color.FromRgb(68, 68, 68)),
+                Foreground = Brushes.White,
+                CornerRadius = new CornerRadius(5)
+            };
+            btnMenu.Click += (s, e) =>
+            {
+                dialog.Close();
+                // Возврат в меню
+                GameScreen.IsVisible = false;
+                MenuScreen.IsVisible = true;
+                UpdateTopScore();
+            };
+            // Добавляем кнопки в панель и панель в корневой элемент
+            buttons.Children.Add(btnRestart);
+            buttons.Children.Add(btnMenu);
+            root.Children.Add(buttons);
+            // Устанавливаем содержимое диалога и показываем его
+            dialog.Content = root;
+            dialog.ShowDialog(this);
+        }
+        // === Кнопки управления окном ===
         private void BtnExit_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             Close();
         }
-
+        // Кнопка возврата в меню из игры
         private void BtnBackToMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             PauseGame();
@@ -426,12 +536,12 @@ namespace TetrisAvalonia
         }
 
         // === Кнопки управления игрой ===
-
+        // Кнопка начала новой игры
         private void BtnStart_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             StartGame();
         }
-
+        // Кнопка паузы/возобновления игры
         private void BtnPause_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             if (_running)
@@ -443,7 +553,7 @@ namespace TetrisAvalonia
                 ResumeGame();
             }
         }
-
+        // Запуск новой игры
         private void StartGame()
         {
             _game.Reset();
@@ -468,7 +578,7 @@ namespace TetrisAvalonia
             BtnStart.IsTabStop = false;
             BtnPause.IsTabStop = false;
         }
-
+        // Пауза игры
         private void PauseGame()
         {
             _timer.Stop();
@@ -479,7 +589,7 @@ namespace TetrisAvalonia
 
             UpdateGameUI();
         }
-
+        // Возобновление игры из паузы
         private void ResumeGame()
         {
             _timer.Start();

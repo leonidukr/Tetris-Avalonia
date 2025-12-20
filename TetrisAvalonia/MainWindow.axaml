@@ -55,7 +55,7 @@
 								</Style>
 							</Button.Styles>
 						</Button>
-
+						
 						<Button Name="BtnHighScoresMenu" Content="🏆 HIGH SCORES"
                                 Height="50" FontSize="18"
                                 Background="#333" Foreground="White"
@@ -68,7 +68,7 @@
 								</Style>
 							</Button.Styles>
 						</Button>
-
+						
 						<Button Name="BtnExit" Content="🚪 EXIT"
                                 Height="50" FontSize="18"
                                 Background="#333" Foreground="White"
