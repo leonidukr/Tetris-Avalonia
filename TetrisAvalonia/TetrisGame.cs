@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Net.Http; 
+using System.Text;     
+using System.Threading.Tasks; 
 
 namespace TetrisAvalonia
 {   // Класс для хранения рекордов
@@ -21,6 +24,9 @@ namespace TetrisAvalonia
 
         private readonly int[,] _grid = new int[Height, Width];
         private readonly Random _rnd = new Random();
+
+        private const string ServerUrl = "https://redundantly-unamused-brice.ngrok-free.dev/api/scores";
+        private static readonly HttpClient client = new HttpClient();
 
         // Фигуры: 7 тетромино в формате 4x4
         private static readonly int[,,] SHAPES = new int[7, 4, 4]
@@ -52,6 +58,48 @@ namespace TetrisAvalonia
             (128,0,128), // 6 T - фиолетовый
             (255,0,0),   // 7 Z - красный
         };
+        public async Task LoadHighScoresAsync()
+        {
+            try
+            {
+                // Пытаемся скачать данные с сервера
+                var json = await client.GetStringAsync(ServerUrl);
+                var scores = JsonSerializer.Deserialize<List<HighScore>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (scores != null)
+                {
+                    HighScores = scores;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Если сервер недоступен, просто игнорируем или создаем пустой список
+                System.Diagnostics.Debug.WriteLine("Ошибка сети: " + ex.Message);
+                // Можно оставить HighScores как есть (пустым или старым)
+            }
+        }
+        public async Task AddHighScoreAsync(string name, int score)
+        {
+            // Сначала добавляем локально, чтобы игрок сразу увидел результат
+            var newRecord = new HighScore { Name = name, Score = score };
+            HighScores.Add(newRecord);
+            HighScores = HighScores.OrderByDescending(h => h.Score).Take(10).ToList();
+
+            // Теперь отправляем на сервер
+            try
+            {
+                var json = JsonSerializer.Serialize(newRecord);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await client.PostAsync(ServerUrl, content);
+
+                // После отправки, лучше обновить список с сервера, чтобы увидеть рекорды других
+                await LoadHighScoresAsync();
+            }
+            catch
+            {
+                // Ошибка отправки (нет интернета и т.д.)
+            }
+        }
 
         public int[,] Grid => _grid;
 
@@ -81,7 +129,7 @@ namespace TetrisAvalonia
 
         public TetrisGame()
         {
-            LoadHighScores();
+            //LoadHighScores();
             Reset();
         }
         // Сброс игры
@@ -259,18 +307,7 @@ namespace TetrisAvalonia
 
 
         // Загрузка таблицы рекордов
-        private void LoadHighScores()
-        {
-            try
-            {
-                if (File.Exists(HS_FILE))
-                {
-                    var json = File.ReadAllText(HS_FILE);
-                    HighScores = JsonSerializer.Deserialize<List<HighScore>>(json) ?? new List<HighScore>();
-                }
-            }
-            catch { HighScores = new List<HighScore>(); }
-        }
+
 
         // Сохранение таблицы рекордов
         private void SaveHighScores()

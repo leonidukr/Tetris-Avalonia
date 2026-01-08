@@ -23,8 +23,8 @@ namespace TetrisAvalonia
             this.AttachDevTools();
 #endif
             _game = new TetrisGame();
+            LoadScoresOnStart();
 
-            
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(30);
             _timer.Tick += Timer_Tick;
@@ -39,6 +39,11 @@ namespace TetrisAvalonia
             
             BtnBackToMenu.IsEnabled = false;
             BtnBackToMenu.Focusable = false; 
+        }
+        private async void LoadScoresOnStart()
+        {
+            await _game.LoadHighScoresAsync();
+            UpdateTopScore(); // Обновить UI после загрузки
         }
         // При получении фокуса — если видим игровой экран, устанавливаем фокус на окно
         protected override void OnGotFocus(GotFocusEventArgs e)
@@ -60,31 +65,39 @@ namespace TetrisAvalonia
         // Таймер игры — обновление состояния и отрисовка
         private void Timer_Tick(object? sender, EventArgs e)
         {
+            // 1. МГНОВЕННАЯ ПРОВЕРКА: если игра уже не запущена, выходим сразу
+            if (!_running) return;
+
             var needRender = _game.Update();
+
             if (needRender)
             {
                 RenderAll();
                 UpdateGameUI();
             }
 
-            // Обработка окончания игры
-            if (_game.IsGameOver && _running)
+            if (_game.IsGameOver)
             {
-                // Останавливаем игру и показываем диалог
+                
+                _running = false;  
                 _timer.Stop();
-                _running = false;
 
+        
                 TxtGameState.Text = "GAME OVER";
                 TxtGameState.Foreground = new SolidColorBrush(Color.FromRgb(255, 50, 50));
 
-                // Добавляем рекорд и обновляем списки
-                _game.AddHighScore(_playerName, _game.Score);
-                UpdateHighScoresList();
-                UpdateTopScore();
-
-                ShowGameOverDialog(_game.Score);
+ 
+                SaveScoreAndShowDialog();
             }
         }
+        private async void SaveScoreAndShowDialog()
+        {
+            await _game.AddHighScoreAsync(_playerName, _game.Score);
+            UpdateHighScoresList();
+            UpdateTopScore();
+            ShowGameOverDialog(_game.Score);
+        }
+
         // Обновление элементов UI с информацией об игре
         private void UpdateGameUI()
         {
@@ -345,8 +358,9 @@ namespace TetrisAvalonia
             return _playerName;
         }
 
-        private void BtnHighScoresMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        private async void BtnHighScoresMenu_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
+            await _game.LoadHighScoresAsync();
             // Обновляем лучший результат перед показом
             UpdateTopScore();
 
