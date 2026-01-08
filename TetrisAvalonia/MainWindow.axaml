@@ -1,15 +1,18 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:TetrisAvalonia"
         x:Class="TetrisAvalonia.MainWindow"
         Width="900" Height="700"
         Title="Tetris"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI"
-        Focusable="True">
+        Focusable="True"
+        x:DataType="local:GameViewModel">
 
 	<Grid Background="#0a0a0a">
 		<!-- ЭКРАН МЕНЮ -->
-		<Border Name="MenuScreen" Background="#0a0a0a" Width="900" Height="700" IsVisible="True">
+		<Border Name="MenuScreen" Background="#0a0a0a" Width="900" Height="700"
+                IsVisible="{Binding IsMenuScreenVisible}">
 			<Grid>
 				<!-- Фоновые блоки тетриса -->
 				<Canvas Opacity="0.3">
@@ -34,7 +37,7 @@
 						<StackPanel HorizontalAlignment="Center" Spacing="10">
 							<TextBlock Text="ENTER YOUR NAME" FontSize="16" Foreground="#888"
                                        HorizontalAlignment="Center"/>
-							<TextBox Name="PlayerNameTextBox" Text="Player" Width="200"
+							<TextBox Name="PlayerNameTextBox" Text="{Binding PlayerName}" Width="200"
                                      HorizontalAlignment="Center" FontSize="18"
                                      Background="#333" Foreground="White" BorderThickness="0"
                                      CaretBrush="White"/>
@@ -55,7 +58,7 @@
 								</Style>
 							</Button.Styles>
 						</Button>
-						
+
 						<Button Name="BtnHighScoresMenu" Content="🏆 HIGH SCORES"
                                 Height="50" FontSize="18"
                                 Background="#333" Foreground="White"
@@ -68,7 +71,7 @@
 								</Style>
 							</Button.Styles>
 						</Button>
-						
+
 						<Button Name="BtnExit" Content="🚪 EXIT"
                                 Height="50" FontSize="18"
                                 Background="#333" Foreground="White"
@@ -88,8 +91,8 @@
 						<StackPanel HorizontalAlignment="Center" Spacing="10">
 							<TextBlock Text="TOP SCORE" FontSize="16" Foreground="#888"
                                        HorizontalAlignment="Center"/>
-							<TextBlock Name="TxtTopScore" Text="0" FontSize="32"
-                                       Foreground="#FFD700" HorizontalAlignment="Center"/>
+							<TextBlock Name="TxtTopScore" Text="{Binding TopScore, StringFormat='{}{0:N0}'}"
+                                       FontSize="32" Foreground="#FFD700" HorizontalAlignment="Center"/>
 							<TextBlock Text="Best Player" FontSize="14" Foreground="#666"
                                        HorizontalAlignment="Center"/>
 						</StackPanel>
@@ -107,7 +110,8 @@
 		</Border>
 
 		<!-- ЭКРАН ИГРЫ -->
-		<Grid Name="GameScreen" ColumnDefinitions="Auto, 400" IsVisible="False">
+		<Grid Name="GameScreen" ColumnDefinitions="Auto, 400"
+              IsVisible="{Binding IsGameScreenVisible}">
 			<!-- Игровое поле -->
 			<Border Grid.Column="0" Background="#111" Padding="20" Margin="20,20,0,20">
 				<Grid>
@@ -122,7 +126,7 @@
                             BorderThickness="0" CornerRadius="3"
                             HorizontalAlignment="Left" VerticalAlignment="Top"
                             Margin="10" Click="BtnBackToMenu_Click"
-                            IsEnabled="False">
+                            IsEnabled="True">
 						<Button.Styles>
 							<Style Selector="Button:pointerover">
 								<Setter Property="Background" Value="#444"/>
@@ -136,7 +140,7 @@
 			<!-- Панель информации -->
 			<Border Grid.Column="1" Background="#1a1a1a" Margin="0,20,20,20" CornerRadius="10">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="660">
-					<Grid Margin="20" Width="340">
+					<Grid Margin="20" Width="340" x:DataType="local:GameViewModel">
 						<Grid.RowDefinitions>
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="Auto"/>
@@ -152,16 +156,16 @@
 						<StackPanel Grid.Row="0" Spacing="5" Margin="0,0,0,15">
 							<TextBlock Text="TETRIS" FontSize="24" FontWeight="Bold"
                                        Foreground="#FF5555"/>
-							<TextBlock Name="TxtGameState" Text="READY" FontSize="14"
-                                       Foreground="#55FF55"/>
+							<TextBlock Name="TxtGameState" Text="{Binding GameState}"
+                                       Foreground="{Binding GameStateColor}" FontSize="14"/>
 						</StackPanel>
 
 						<!-- Имя игрока -->
 						<Border Grid.Row="1" Background="#222" CornerRadius="8" Padding="15" Margin="0,0,0,10">
 							<StackPanel>
 								<TextBlock Text="PLAYER" FontSize="12" Foreground="#888"/>
-								<TextBlock Name="TxtPlayerName" Text="Player" FontSize="18"
-                                           Foreground="White"/>
+								<TextBlock Name="TxtPlayerName" Text="{Binding PlayerName}"
+                                           FontSize="18" Foreground="White"/>
 							</StackPanel>
 						</Border>
 
@@ -169,8 +173,8 @@
 						<Border Grid.Row="2" Background="#222" CornerRadius="8" Padding="15" Margin="0,0,0,10">
 							<StackPanel>
 								<TextBlock Text="SCORE" FontSize="14" Foreground="#888"/>
-								<TextBlock Name="TxtScore" Text="0" FontSize="36"
-                                           Foreground="White" FontWeight="Bold"/>
+								<TextBlock Name="TxtScore" Text="{Binding Score, StringFormat='{}{0:N0}'}"
+                                           FontSize="36" Foreground="White" FontWeight="Bold"/>
 							</StackPanel>
 						</Border>
 
@@ -180,8 +184,8 @@
                                     Padding="15" Margin="0,0,5,0">
 								<StackPanel>
 									<TextBlock Text="LEVEL" FontSize="12" Foreground="#888"/>
-									<TextBlock Name="TxtLevel" Text="1" FontSize="24"
-                                               Foreground="#55FF55"/>
+									<TextBlock Name="TxtLevel" Text="{Binding Level}"
+                                               FontSize="24" Foreground="#55FF55"/>
 								</StackPanel>
 							</Border>
 
@@ -189,8 +193,8 @@
                                     Padding="15" Margin="5,0,0,0">
 								<StackPanel>
 									<TextBlock Text="LINES" FontSize="12" Foreground="#888"/>
-									<TextBlock Name="TxtLines" Text="0" FontSize="24"
-                                               Foreground="#5555FF"/>
+									<TextBlock Name="TxtLines" Text="{Binding Lines}"
+                                               FontSize="24" Foreground="#5555FF"/>
 								</StackPanel>
 							</Border>
 						</Grid>
@@ -214,8 +218,29 @@
 							<StackPanel>
 								<TextBlock Text="HIGH SCORES" FontSize="14" Foreground="#888"
                                            Margin="0,0,0,10"/>
-								<ItemsControl Name="HighScoresList" MaxHeight="150">
-									<!-- Без шаблона, будем заполнять в коде -->
+								<ItemsControl Name="HighScoresList" MaxHeight="150"
+                                             ItemsSource="{Binding HighScores}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="local:HighScore">
+											<Border Background="#333" CornerRadius="5"
+                                                    Margin="0,0,0,5" Padding="10,8,10,8">
+												<Grid>
+													<Grid.ColumnDefinitions>
+														<ColumnDefinition Width="*"/>
+														<ColumnDefinition Width="Auto"/>
+													</Grid.ColumnDefinitions>
+
+													<TextBlock Text="{Binding Name}" Foreground="White"
+                                                               VerticalAlignment="Center"/>
+
+													<TextBlock Grid.Column="1"
+                                                               Text="{Binding Score, StringFormat='{}{0:N0}'}"
+                                                               Foreground="#FFD700" FontWeight="Bold"
+                                                               VerticalAlignment="Center"/>
+												</Grid>
+											</Border>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
 								</ItemsControl>
 							</StackPanel>
 						</Border>
@@ -229,7 +254,7 @@
                                     Click="BtnStart_Click"
                                     IsTabStop="False"
 									HorizontalAlignment="Right" >
-									
+
 								<Button.Styles>
 									<Style Selector="Button:pointerover">
 										<Setter Property="Background" Value="#44EE44"/>

@@ -4,20 +4,34 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Net.Http; 
-using System.Text;     
-using System.Threading.Tasks; 
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace TetrisAvalonia
-{   // Класс для хранения рекордов
+{
+    // Класс для хранения рекордов
     public class HighScore
     {
         public string Name { get; set; } = "Player";
         public int Score { get; set; }
     }
+
     // Основной класс игры Тетрис
-    public class TetrisGame
+    public class TetrisGame : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        // События для уведомления об изменениях состояния
+        public event Action<bool>? GameStateChanged;
+        public event Action? GameOver;
+        public event Action? ScoreChanged;
+        public event Action? LinesClearedChanged;
+        public event Action? LevelChanged;
+        public event Action? GameReset;
+
         public const int Width = 10;
         public const int Height = 20;
         public const int CellSize = 30;
@@ -25,7 +39,7 @@ namespace TetrisAvalonia
         private readonly int[,] _grid = new int[Height, Width];
         private readonly Random _rnd = new Random();
 
-        private const string ServerUrl = "https://jtcvyf-95-104-189-251.ru.tuna.am/api/scores";
+        private const string ServerUrl = "https://2qh4pe-95-104-189-251.ru.tuna.am/api/scores";
         private static readonly HttpClient client = new HttpClient();
 
         // Фигуры: 7 тетромино в формате 4x4
@@ -58,48 +72,12 @@ namespace TetrisAvalonia
             (128,0,128), // 6 T - фиолетовый
             (255,0,0),   // 7 Z - красный
         };
-        public async Task LoadHighScoresAsync()
-        {
-            try
-            {
-                // Пытаемся скачать данные с сервера
-                var json = await client.GetStringAsync(ServerUrl);
-                var scores = JsonSerializer.Deserialize<List<HighScore>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (scores != null)
-                {
-                    HighScores = scores;
-                }
-            }
-            catch (Exception ex)
-            {
-                // Если сервер недоступен, просто игнорируем или создаем пустой список
-                System.Diagnostics.Debug.WriteLine("Ошибка сети: " + ex.Message);
-                // Можно оставить HighScores как есть (пустым или старым)
-            }
-        }
-        public async Task AddHighScoreAsync(string name, int score)
-        {
-            // Сначала добавляем локально, чтобы игрок сразу увидел результат
-            var newRecord = new HighScore { Name = name, Score = score };
-            HighScores.Add(newRecord);
-            HighScores = HighScores.OrderByDescending(h => h.Score).Take(10).ToList();
-
-            // Теперь отправляем на сервер
-            try
-            {
-                var json = JsonSerializer.Serialize(newRecord);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-                await client.PostAsync(ServerUrl, content);
-
-                // После отправки, лучше обновить список с сервера, чтобы увидеть рекорды других
-                await LoadHighScoresAsync();
-            }
-            catch
-            {
-                // Ошибка отправки (нет интернета и т.д.)
-            }
-        }
+        private int _score = 0;
+        private int _linesCleared = 0;
+        private bool _isGameOver = false;
+        private double _fallInterval = 0.5;
+        private List<HighScore> _highScores = new List<HighScore>();
 
         public int[,] Grid => _grid;
 
@@ -113,25 +91,117 @@ namespace TetrisAvalonia
         public int CurrentY { get; private set; }
         public int CurrentColor { get; private set; } = 1;
 
-        private double _fallInterval = 0.5; // секунды
         private double _accumulator = 0.0;
 
-        public int Score { get; private set; } = 0;
-        public int LinesCleared { get; private set; } = 0; // для подсчёта очищенных линий
+        public int Score
+        {
+            get => _score;
+            private set
+            {
+                if (_score != value)
+                {
+                    _score = value;
+                    OnPropertyChanged();
+                    ScoreChanged?.Invoke();
+                }
+            }
+        }
+
+        public int LinesCleared
+        {
+            get => _linesCleared;
+            private set
+            {
+                if (_linesCleared != value)
+                {
+                    _linesCleared = value;
+                    OnPropertyChanged();
+                    LinesClearedChanged?.Invoke();
+
+                    // При изменении линий также может измениться уровень
+                    LevelChanged?.Invoke();
+                }
+            }
+        }
+
+        public int Level => (LinesCleared / 10) + 1;
+
         public string PlayerName { get; set; } = "Player";
 
-        // Флаг конца игры
-        public bool IsGameOver { get; private set; } = false;
+        public bool IsGameOver
+        {
+            get => _isGameOver;
+            private set
+            {
+                if (_isGameOver != value)
+                {
+                    _isGameOver = value;
+                    OnPropertyChanged();
+                    GameStateChanged?.Invoke(value);
 
-        // Таблица рекордов
-        private const string HS_FILE = "highscores.json";
-        public List<HighScore> HighScores { get; private set; } = new List<HighScore>();
+                    if (value)
+                    {
+                        GameOver?.Invoke();
+                    }
+                }
+            }
+        }
+
+        public List<HighScore> HighScores
+        {
+            get => _highScores;
+            set
+            {
+                _highScores = value;
+                OnPropertyChanged();
+            }
+        }
 
         public TetrisGame()
         {
-            //LoadHighScores();
             Reset();
         }
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public async Task LoadHighScoresAsync()
+        {
+            try
+            {
+                var json = await client.GetStringAsync(ServerUrl);
+                var scores = JsonSerializer.Deserialize<List<HighScore>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (scores != null)
+                {
+                    HighScores = scores;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Ошибка сети: " + ex.Message);
+            }
+        }
+
+        public async Task AddHighScoreAsync(string name, int score)
+        {
+            var newRecord = new HighScore { Name = name, Score = score };
+            HighScores.Add(newRecord);
+            HighScores = HighScores.OrderByDescending(h => h.Score).Take(10).ToList();
+            OnPropertyChanged(nameof(HighScores));
+
+            try
+            {
+                var json = JsonSerializer.Serialize(newRecord);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await client.PostAsync(ServerUrl, content);
+                await LoadHighScoresAsync();
+            }
+            catch { }
+        }
+
         // Сброс игры
         public void Reset()
         {
@@ -143,8 +213,10 @@ namespace TetrisAvalonia
             _accumulator = 0.0;
             _fallInterval = 0.5;
             IsGameOver = false;
+
+            GameReset?.Invoke();
         }
-        // Спавн следующей фигуры
+
         private void SpawnNextPiece()
         {
             int idx = _rnd.Next(0, 7);
@@ -152,41 +224,32 @@ namespace TetrisAvalonia
                 for (int x = 0; x < 4; x++)
                     _next[y, x] = SHAPES[idx, y, x];
         }
-        // Спавн текущей фигуры
+
         private void SpawnNewPiece()
         {
-            // переносим следующую фигуру в текущую
             for (int y = 0; y < 4; y++)
                 for (int x = 0; x < 4; x++)
                     _current[y, x] = _next[y, x];
 
-            // генерируем новую следующую фигуру
             SpawnNextPiece();
-
             CurrentX = Width / 2 - 2;
             CurrentY = 0;
 
-            // если при спавне происходит коллизия — это конец игры
             if (CheckCollision(CurrentX, CurrentY, _current))
             {
-                // отмечаем окончание игры — UI/хост должны показать диалог и сохранить рекорд
                 IsGameOver = true;
-                return;
             }
         }
-        // Обновление состояния игры
+
         public bool Update()
         {
-            // если игра окончена — не продвигаем падение фигур
             if (IsGameOver) return false;
 
-            // Вызывается таймером часто. Накопим время и выполним шаг, когда нужно.
-            _accumulator += 0.03; // соответствует интервалу таймера (30ms)
+            _accumulator += 0.03;
             bool rendered = false;
             if (_accumulator >= _fallInterval)
             {
                 _accumulator = 0.0;
-                // пробуем сдвинуть вниз
                 if (!TryMove(0, 1))
                 {
                     MergeCurrent();
@@ -197,7 +260,7 @@ namespace TetrisAvalonia
             }
             return rendered;
         }
-        // Попытка сдвинуть текущую фигуру
+
         public bool TryMove(int dx, int dy)
         {
             if (!CheckCollision(CurrentX + dx, CurrentY + dy, _current))
@@ -208,7 +271,7 @@ namespace TetrisAvalonia
             }
             return false;
         }
-        // Попытка повернуть текущую фигуру
+
         public void TryRotate()
         {
             int[,] rotated = new int[4, 4];
@@ -221,7 +284,7 @@ namespace TetrisAvalonia
                 _current = rotated;
             }
         }
-        // Мгновенное падение текущей фигуры
+
         public void HardDrop()
         {
             while (TryMove(0, 1)) { }
@@ -229,7 +292,7 @@ namespace TetrisAvalonia
             ClearLines();
             SpawnNewPiece();
         }
-        // Слияние текущей фигуры с сеткой
+
         private void MergeCurrent()
         {
             for (int y = 0; y < 4; y++)
@@ -244,28 +307,36 @@ namespace TetrisAvalonia
                     }
                 }
         }
-        // Очистка заполненных линий
+
         private void ClearLines()
         {
             int cleared = 0;
             for (int y = Height - 1; y >= 0; y--)
             {
                 bool full = true;
-                for (int x = 0; x < Width; x++) if (_grid[y, x] == 0) { full = false; break; }
+                for (int x = 0; x < Width; x++)
+                    if (_grid[y, x] == 0)
+                    {
+                        full = false;
+                        break;
+                    }
+
                 if (full)
                 {
                     cleared++;
-                    // сдвигаем все строки выше вниз
                     for (int ty = y; ty > 0; ty--)
                         for (int x = 0; x < Width; x++)
                             _grid[ty, x] = _grid[ty - 1, x];
-                    for (int x = 0; x < Width; x++) _grid[0, x] = 0;
-                    y++; // повторно проверить ту же строку
+
+                    for (int x = 0; x < Width; x++)
+                        _grid[0, x] = 0;
+
+                    y++;
                 }
             }
+
             if (cleared > 0)
             {
-                // подсчёт очков за очищенные линии
                 int points = cleared switch
                 {
                     1 => 100,
@@ -274,14 +345,13 @@ namespace TetrisAvalonia
                     4 => 800,
                     _ => 0
                 };
+
                 Score += points;
                 LinesCleared += cleared;
-
-                // увеличиваем скорость падения
                 _fallInterval = Math.Max(0.05, _fallInterval - cleared * 0.02);
             }
         }
-        // Проверка коллизий текущей фигуры с сеткой
+
         private bool CheckCollision(int px, int py, int[,] piece)
         {
             for (int y = 0; y < 4; y++)
@@ -304,30 +374,5 @@ namespace TetrisAvalonia
             var c = COLORS[value];
             return Color.FromRgb(c.r, c.g, c.b);
         }
-
-
-        // Загрузка таблицы рекордов
-
-
-        // Сохранение таблицы рекордов
-        private void SaveHighScores()
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(HighScores);
-                File.WriteAllText(HS_FILE, json);
-            }
-            catch { }
-        }
-
-        // Добавление рекорда с именем игрока
-        public void AddHighScore(string name, int score)
-        {
-            HighScores.Add(new HighScore { Name = name, Score = score });
-            HighScores = HighScores.OrderByDescending(h => h.Score).Take(5).ToList();
-            SaveHighScores();
-        }
-
-
     }
 }
