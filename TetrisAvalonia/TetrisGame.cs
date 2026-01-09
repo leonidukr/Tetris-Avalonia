@@ -39,7 +39,7 @@ namespace TetrisAvalonia
         private readonly int[,] _grid = new int[Height, Width];
         private readonly Random _rnd = new Random();
 
-        private const string ServerUrl = "https://2qh4pe-95-104-189-251.ru.tuna.am/api/scores";
+        private const string ServerUrl = "https://2sennw-95-104-189-251.ru.tuna.am/api/scores";
         private static readonly HttpClient client = new HttpClient();
 
         // Фигуры: 7 тетромино в формате 4x4
